@@ -3,57 +3,75 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Tactical Command Dashboard v3.9 - PERP MODE</title>
-  <script src="https://cdn.jsdelivr.net/npm/ccxt@4.2.92/dist/ccxt.browser.js"></script>
+  <title>Tactical Command Dashboard v4.4 - BINANCE PERP</title>
+  <script src="https://cdn.jsdelivr.net/npm/ccxt@latest/dist/ccxt.browser.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root { --bg: #0c0c0c; --panel: #111; --border: #333; --up: #00ff88; --down: #ff3344; --gold: #ffd700; --inst: #e100ff; --infra: #9c27b0; --defi: #2196f3; --ai: #00bcd4; --mega: #00ffff; }
+    :root { --bg: #0c0c0c; --panel: #111; --border: #333; --up: #00ff88; --down: #ff3344; --gold: #ffd700; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: #b0b0b0; font-family: 'IBM Plex Mono', monospace; font-size: 11px; height: 100vh; width: 100vw; overflow: hidden; display: flex; padding: 6px; }
     
     .dashboard { width: 100%; height: 100%; display: grid; grid-template-columns: 260px 1fr; grid-template-rows: 60% 40%; gap: 6px; }
-    
     .sidebar { grid-column: 1; grid-row: 1 / 3; display: flex; flex-direction: column; gap: 6px; height: 100%; }
     .main-upper { grid-column: 2; grid-row: 1; display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 6px; min-height: 0; }
     .main-lower { grid-column: 2; grid-row: 2; display: grid; grid-template-columns: 1fr 1fr 1.8fr 1fr; gap: 6px; min-height: 0; }
     
     .panel { background: var(--panel); border: 1px solid var(--border); padding: 8px; display: flex; flex-direction: column; min-height: 0; position: relative; }
-    .system-panel { border: 1px solid #444; background: #0f1610; flex-shrink: 0; }
-    
-    .header { text-align: center; font-size: 11px; font-weight: 600; color: #fff; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 4px; flex-shrink: 0; text-transform: uppercase; }
-    .content { flex: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; scrollbar-width: none; }
+    .header { text-align: center; font-size: 11px; font-weight: 600; color: #fff; margin-bottom: 6px; border-bottom: 1px solid #222; padding-bottom: 4px; text-transform: uppercase; }
+    .content { flex: 1; overflow-y: auto; scrollbar-width: none; }
     .content::-webkit-scrollbar { display: none; }
-    
+    .status { color: #555; text-align: center; padding: 12px 0; font-size: 10px; }
+
     .input-group { display: flex; gap: 4px; margin-top: 4px; }
-    input { background: #000; border: 1px solid var(--border); color: var(--up); font-family: inherit; font-size: 10px; padding: 2px 4px; flex: 1; outline: none; }
-    button { background: #222; border: 1px solid var(--border); color: #fff; font-size: 9px; cursor: pointer; padding: 0 6px; text-transform: uppercase; }
+    input { background: #000; border: 1px solid var(--border); color: var(--up); font-size: 10px; padding: 4px; flex: 1; outline: none; }
+    button { background: #222; border: 1px solid var(--border); color: #fff; font-size: 9px; cursor: pointer; padding: 0 8px; }
     button:hover { background: #333; color: var(--up); }
 
-    .sys-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+    .sys-row { display: flex; justify-content: space-between; margin-bottom: 2px; height: 18px; align-items: center; font-size: 10px; }
     .clickable { cursor: pointer; }
     .clickable:hover { color: #fff; text-decoration: underline; }
-    .data-row { display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 4px; border-bottom: 1px solid #1a1a1a; height: 17px; line-height: 17px; }
-    .mover-row { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid #1a1a1a; height: 17px; line-height: 17px; }
     
-    /* WHALE SCANNER 1-LINE STYLE */
-    .whale-row { 
-      display: flex; gap: 6px; align-items: center; font-size: 10px; 
-      border-bottom: 1px solid #1a1a1a; height: 18px; white-space: nowrap; 
+    .data-row { 
+      display: grid; 
+      grid-template-columns: 50px 1fr 70px 90px;  /* symbol | price | change | volume */
+      gap: 6px; 
+      border-bottom: 1px solid #1a1a1a; 
+      height: 20px; 
+      line-height: 20px; 
+      font-size: 10px;
     }
-    .w-icon { width: 14px; text-align: center; }
-    .w-time { color: #666; }
-    .w-asset { font-weight: 600; color: #eee; min-width: 35px; }
-    .w-side { font-weight: 700; width: 40px; }
-    .w-val { color: var(--gold); }
-    .w-price { opacity: 0.6; }
+    .data-row span:nth-child(1) { text-align: left; }
+    .data-row span:nth-child(2) { text-align: right; color: #ddd; }
+    .data-row span:nth-child(3) { text-align: right; }
+    .data-row span:nth-child(4) { text-align: right; color: var(--gold); }
 
-    .bar { height: 4px; background: #222; margin: 3px 0 5px 0; overflow: hidden; }
+    .mover-row { 
+      display: grid; 
+      grid-template-columns: 55px 80px 1fr;  /* symbol | price | change */
+      gap: 8px; 
+      border-bottom: 1px solid #1a1a1a; 
+      height: 20px; 
+      line-height: 20px; 
+      font-size: 10px;
+    }
+    .mover-row span:nth-child(1) { font-weight: 500; }
+    .mover-row span:nth-child(2) { color: #ccc; text-align: right; }
+    .mover-row span:nth-child(3) { text-align: right; }
+
+    .whale-row { display: flex; gap: 8px; align-items: center; font-size: 10px; border-bottom: 1px solid #1a1a1a; height: 20px; white-space: nowrap; }
+    .w-time { min-width: 50px; color: #777; }
+    .w-asset { font-weight: 600; color: #eee; min-width: 45px; }
+    .w-side { font-weight: bold; min-width: 50px; }
+    .w-val { color: var(--gold); flex: 1; text-align: right; }
+
+    .bar { height: 4px; background: #222; margin: 4px 0 6px 0; overflow: hidden; }
     .fill { height: 100%; transition: width 0.8s ease; }
     .up { color: var(--up); } .down { color: var(--down); } .gold { color: var(--gold); }
-    .ghost-line { border-left: 2px solid var(--border); padding-left: 5px; margin-bottom: 4px; font-size: 10px; }
 
-    .mom-row { display: grid; grid-template-columns: 35px 45px 1fr; gap: 8px; align-items: center; margin-bottom: 2px; font-size: 10px; }
-    .tag { font-size: 8px; padding: 0px 3px; border-radius: 2px; text-align: center; font-weight: 600; border: 1px solid; }
+    .mom-row { display: grid; grid-template-columns: 35px 45px 1fr 90px; gap: 8px; align-items: center; margin-bottom: 4px; font-size: 10px; }
+    .mom-row span:nth-child(4) { text-align: right; color: #ddd; }
+
+    .tag { font-size: 8px; padding: 1px 4px; border-radius: 2px; text-align: center; font-weight: 600; border: 1px solid; }
     .tag-up { background: rgba(0, 255, 136, 0.1); color: var(--up); border-color: rgba(0, 255, 136, 0.3); }
     .tag-down { background: rgba(255, 51, 68, 0.1); color: var(--down); border-color: rgba(255, 51, 68, 0.3); }
   </style>
@@ -61,143 +79,263 @@
 <body>
   <div class="dashboard">
     <div class="sidebar">
-      <div class="panel system-panel">
-        <div class="header" style="text-align: left; color: var(--up); border:none;">COMMAND v3.9-PERP</div>
-        <div class="sys-row"><span>NET</span> <span class="gold" id="exchange-id">BINANCE_USDM</span></div>
+      <div class="panel" style="background:#0f1610;">
+        <div class="header" style="text-align: left; color: var(--up); border:none;">COMMAND v4.4-PERP</div>
+        <div class="sys-row"><span>NET</span> <span class="gold">BINANCE SWAP</span></div>
         <div class="sys-row"><span>UTC</span> <span id="clock">00:00:00</span></div>
       </div>
-      <div class="panel"><div class="header">WATCHLIST</div><div id="watchlist" class="content"></div></div>
-      <div class="panel"><div class="header">INTEL FEED</div><div id="intel" class="content"></div></div>
+      <div class="panel"><div class="header">WATCHLIST</div><div id="watchlist" class="content"><div class="status">static list</div></div></div>
+      <div class="panel"><div class="header">INTEL FEED</div><div id="intel" class="content"><div class="status">loading...</div></div></div>
       <div class="panel">
         <div class="header">MANAGE TARGETS</div>
         <div class="input-group">
-            <input type="text" id="targetInput" placeholder="TICKER (e.g. PEPE)" onkeydown="if(event.key==='Enter') addTarget()">
-            <button onclick="addTarget()">ADD</button>
+          <input type="text" id="targetInput" placeholder="BTC, SOL..." onkeydown="if(event.key==='Enter') addTarget()">
+          <button onclick="addTarget()">ADD</button>
         </div>
-        <div style="font-size: 8px; margin-top: 5px; opacity: 0.5;">Click asset in list to remove.</div>
       </div>
-      <div class="panel"><div class="header">CHECKLIST</div><div id="checklist" class="content"></div></div>
+      <div class="panel"><div class="header">CHECKLIST</div><div id="checklist" class="content"><div class="status">empty</div></div></div>
     </div>
 
     <div class="main-upper">
-      <div class="panel"><div class="header">FIXED TARGETS</div><div id="fixed" class="content"></div></div>
-      <div class="panel" id="vol-panel"><div class="header">TOP VOLUME (PERPS)</div><div id="topvol" class="content"></div></div>
+      <div class="panel"><div class="header">FIXED TARGETS</div><div id="fixed" class="content"><div class="status">loading...</div></div></div>
+      <div class="panel"><div class="header">TOP VOLUME (PERPS)</div><div id="topvol" class="content"><div class="status">fetching...</div></div></div>
       <div style="display: grid; grid-template-rows: 1fr 1fr; gap: 6px; min-height: 0;">
-        <div class="panel"><div class="header">WHALE SCANNER</div><div id="activity" class="content"></div></div>
-        <div class="panel" id="mover-panel">
+        <div class="panel"><div class="header">WHALE SCANNER [REAL]</div><div id="activity" class="content"><div class="status">watching large trades...</div></div></div>
+        <div class="panel">
           <div class="header">MOVERS</div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 100%;">
-            <div id="up" class="content"></div>
-            <div id="down" class="content"></div>
+            <div id="up" class="content"><div class="status">gainers...</div></div>
+            <div id="down" class="content"><div class="status">losers...</div></div>
           </div>
         </div>
       </div>
     </div>
 
     <div class="main-lower">
-      <div class="panel"><div class="header">MONEY FLOW</div><div id="flow" class="content"></div></div>
-      <div class="panel"><div class="header">SENTIMENT</div><div id="sentiment" class="content"></div></div>
-      <div class="panel"><div class="header">RADAR GHOST SCAN</div><div id="radar" class="content"></div></div>
-      <div class="panel"><div class="header">BTC MOMENTUM</div><div id="btcmom" class="content"></div></div>
+      <div class="panel"><div class="header">SECTOR FLOW</div><div id="flow" class="content"><div class="status">calculating...</div></div></div>
+      <div class="panel"><div class="header">SENTIMENT</div><div id="sentiment" class="content"><div class="status">n/a</div></div></div>
+      <div class="panel"><div class="header">ANOMALY SCAN</div><div id="radar" class="content"><div class="status">scanning...</div></div></div>
+      <div class="panel"><div class="header">BTC MOMENTUM</div><div id="btcmom" class="content"><div class="status">fetching...</div></div></div>
     </div>
   </div>
 
   <script>
-    const exchange = new ccxt.binanceusdm({ enableRateLimit: true });
+    const exchange = new ccxt.binance({
+      enableRateLimit: true,
+      options: { defaultType: 'swap' }
+    });
+
+    let perpSymbols = [];
+    let isInit = false;
+    let seenTradeIds = new Set();
+
+    async function initMarkets() {
+      if (isInit) return;
+      try {
+        await exchange.loadMarkets();
+        perpSymbols = Object.keys(exchange.markets).filter(s => {
+          const m = exchange.markets[s];
+          return m.active && m.swap && m.linear && m.quote === 'USDT';
+        });
+        console.log(`Loaded ${perpSymbols.length} USDT perps`);
+        isInit = true;
+      } catch (e) {
+        console.error('Markets failed', e);
+      }
+    }
+
     let TARGETS = JSON.parse(localStorage.getItem('custom_targets_perp')) || ["BTC", "ETH", "SOL", "LINK", "PEPE", "WIF"];
-    const SECTORS = { "INFRA": ["BTC", "ETH", "SOL", "AVAX", "NEAR"], "DEFI": ["LINK", "UNI", "AAVE", "MKR", "PENDLE"], "AI_DEPIN": ["JASMY", "RNDR", "FET", "TAO", "AR"], "MEMES": ["DOGE", "PEPE", "WIF", "BONK", "SHIB"] };
-    const TFs = ["5m", "15m", "4h", "1d"];
+    const SECTORS = { 
+      "INFRA": ["BTC", "ETH", "SOL", "AVAX", "NEAR"], 
+      "DEFI": ["LINK", "UNI", "AAVE", "MKR", "PENDLE"], 
+      "AI": ["JASMY", "RNDR", "FET", "TAO", "AR"], 
+      "MEMES": ["DOGE", "PEPE", "WIF", "BONK", "SHIB"] 
+    };
+
     let whaleLogs = [];
     let lastTickers = {};
+    const fmt = new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 4 });
+    const priceFmt = (p) => {
+      if (!p) return '-';
+      if (p >= 1000) return '$' + fmt.format(p).replace(/\.?0+$/, '');
+      if (p >= 1)    return '$' + p.toFixed(2);
+      if (p >= 0.01) return '$' + p.toFixed(4);
+      return '$' + p.toFixed(8).replace(/0+$/, '');
+    };
+    const WHALE_THRESHOLD_USD = 200000;
 
-    document.getElementById('exchange-id').innerText = 'BINANCE_USDM_PERP';
-    setInterval(() => { document.getElementById('clock').innerText = new Date().toISOString().split('T')[1].split('.')[0]; }, 1000);
-
-    const fmt = new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 1 });
-    const fmtDe = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    setInterval(() => {
+      document.getElementById('clock').innerText = new Date().toISOString().split('T')[1].split('.')[0];
+    }, 1000);
 
     function addTarget() {
-        const input = document.getElementById('targetInput');
-        const symbol = input.value.toUpperCase().trim();
-        if (symbol && !TARGETS.includes(symbol)) { TARGETS.push(symbol); localStorage.setItem('custom_targets_perp', JSON.stringify(TARGETS)); input.value = ''; update(); }
+      const input = document.getElementById('targetInput');
+      const sym = input.value.toUpperCase().trim();
+      if (sym && !TARGETS.includes(sym)) {
+        TARGETS.push(sym);
+        localStorage.setItem('custom_targets_perp', JSON.stringify(TARGETS));
+        input.value = '';
+        renderFixed();
+      }
     }
-    function removeTarget(symbol) { TARGETS = TARGETS.filter(t => t !== symbol); localStorage.setItem('custom_targets_perp', JSON.stringify(TARGETS)); update(); }
 
-    const calcEMA = (data, p) => { const k = 2/(p+1); return data.reduce((acc, val, i) => i === 0 ? val : (val * k) + (acc * (1-k))); };
-    const calcRSI = (data, p=14) => { let g=0, l=0; for(let i=data.length-p; i<data.length; i++) { let d = data[i]-data[i-1]; d >= 0 ? g+=d : l-=d; } return 100 - (100 / (1 + (g/p)/(l/p))); };
+    function removeTarget(sym) {
+      TARGETS = TARGETS.filter(t => t !== sym);
+      localStorage.setItem('custom_targets_perp', JSON.stringify(TARGETS));
+      renderFixed();
+    }
 
-    async function update() {
-        try {
-            const tickers = await exchange.fetchTickers();
-            lastTickers = tickers; 
-            const btc = tickers['BTC/USDT:USDT'] || { percentage: 0, quoteVolume: 0 };
-            const all = Object.entries(tickers).filter(([s]) => s.includes(':USDT')).map(([s, t]) => ({ s: s.split('/')[0], c: t.percentage || 0, v: t.quoteVolume || 0 })).sort((a,b) => b.v - a.v);
+    const getSym = b => `${b}/USDT:USDT`;
 
-            updateMoneyFlow(tickers);
-            document.getElementById('fixed').innerHTML = TARGETS.map(s => {
-                const p = (tickers[`${s}/USDT:USDT`] || {percentage:0}).percentage || 0;
-                return `<div class="sys-row"><span class="clickable" onclick="removeTarget('${s}')">${s}</span><span class="${p>=0?'up':'down'}">${p.toFixed(2)}%</span></div>`;
-            }).join('');
+    async function updateData() {
+      try {
+        await initMarkets();
+        if (!perpSymbols.length) return;
 
-            const volCount = Math.floor(document.getElementById('topvol').clientHeight / 17);
-            document.getElementById('topvol').innerHTML = all.slice(0, volCount).map(r => `<div class="data-row"><span>${r.s}</span><span class="${r.c>=0?'up':'down'}">${Math.abs(r.c).toFixed(1)}%</span><span class="gold">${(r.v/1e6).toFixed(0)}M</span></div>`).join('');
+        const tickers = await exchange.fetchTickers(perpSymbols.slice(0, 300));
+        lastTickers = tickers;
 
-            const sorted = [...all].sort((a,b) => b.c - a.c);
-            document.getElementById('up').innerHTML = sorted.slice(0, 10).map(r => `<div class="mover-row up"><span>${r.s}</span><span>${r.c.toFixed(1)}%</span></div>`).join('');
-            document.getElementById('down').innerHTML = sorted.reverse().slice(0, 10).map(r => `<div class="mover-row down"><span>${r.s}</span><span>${Math.abs(r.c).toFixed(1)}%</span></div>`).join('');
+        const items = Object.entries(tickers).map(([s, t]) => ({
+          base: exchange.markets[s]?.base || s.split('/')[0],
+          change: Number(t.percentage || 0),
+          vol: Number(t.quoteVolume || 0),
+          price: Number(t.last || 0)
+        })).filter(r => r.vol > 0 && r.price > 0).sort((a, b) => b.vol - a.vol);
 
-            document.getElementById('intel').innerHTML = `FUNDING: ACTIVE<br>OI CHANGE: +1.2%<br>PERP VOL: ${(btc.quoteVolume/1e9).toFixed(1)}B`;
-            document.getElementById('checklist').innerHTML = `1. TREND: <span class="up">BULL</span><br>2. RSI: 51.2<br>3. VOL: ${(btc.quoteVolume/1e9).toFixed(1)}B`;
-            document.getElementById('radar').innerHTML = all.filter(r => Math.abs(r.c) > 7).slice(0, 4).map(r => `<div class="ghost-line"><span class="up">[ANOMALY]</span> ${r.s} ${r.c.toFixed(1)}%</div>`).join('');
-        } catch (e) {}
+        const btc = tickers['BTC/USDT:USDT'] || { percentage: 0, quoteVolume: 0, last: 0 };
+
+        // Fixed targets
+        document.getElementById('fixed').innerHTML = TARGETS.map(s => {
+          const t = tickers[getSym(s)] || { percentage: 0, last: 0 };
+          return `<div class="sys-row">
+            <span class="clickable" onclick="removeTarget('${s}')">${s}</span>
+            <span>${priceFmt(t.last)}</span>
+            <span class="${t.percentage >= 0 ? 'up' : 'down'}">${t.percentage.toFixed(2)}%</span>
+          </div>`;
+        }).join('') || '<div class="status">no targets</div>';
+
+        // Top volume
+        document.getElementById('topvol').innerHTML = items.slice(0,15).map(r => 
+          `<div class="data-row">
+            <span>${r.base}</span>
+            <span>${priceFmt(r.price)}</span>
+            <span class="${r.change >= 0 ? 'up' : 'down'}">${r.change.toFixed(1)}%</span>
+            <span class="gold">${(r.vol/1e6).toFixed(0)}M</span>
+          </div>`
+        ).join('') || '<div class="status">no volume data</div>';
+
+        // Movers
+        const byChange = [...items].sort((a,b) => b.change - a.change);
+        document.getElementById('up').innerHTML = byChange.slice(0,10).map(r => 
+          `<div class="mover-row up">
+            <span>${r.base}</span>
+            <span>${priceFmt(r.price)}</span>
+            <span>+${r.change.toFixed(1)}%</span>
+          </div>`
+        ).join('') || '<div class="status">no gainers</div>';
+
+        document.getElementById('down').innerHTML = byChange.slice(-10).reverse().map(r => 
+          `<div class="mover-row down">
+            <span>${r.base}</span>
+            <span>${priceFmt(r.price)}</span>
+            <span>${r.change.toFixed(1)}%</span>
+          </div>`
+        ).join('') || '<div class="status">no losers</div>';
+
+        document.getElementById('intel').innerHTML = `24H VOL: $${(btc.quoteVolume/1e9).toFixed(2)}B<br>BTC: ${priceFmt(btc.last)} | ${btc.percentage.toFixed(2)}%<br>PAIRS: ${items.length}`;
+
+        document.getElementById('radar').innerHTML = items.filter(r => Math.abs(r.change) > 10).slice(0,5).map(r => 
+          `<div style="font-size:10px; margin-bottom:4px;"><span class="gold">[!]</span> ${r.base} @ ${priceFmt(r.price)}  ${r.change > 0 ? '+' : ''}${r.change.toFixed(1)}%</div>`
+        ).join('') || '<div class="status">no spikes</div>';
+
+        let flowHtml = '';
+        Object.entries(SECTORS).forEach(([name, coins]) => {
+          let sum = 0, cnt = 0;
+          coins.forEach(c => {
+            const t = tickers[getSym(c)];
+            if (t) { sum += Number(t.percentage || 0); cnt++; }
+          });
+          const avg = cnt ? sum / cnt : 0;
+          flowHtml += `<div class="sys-row"><span>${name}</span><span class="${avg >= 0 ? 'up' : 'down'}">${avg.toFixed(1)}%</span></div>
+                       <div class="bar"><div class="fill" style="width:${Math.min(Math.max(50 + avg*5,5),100)}%; background:${avg >= 0 ? 'var(--up)' : 'var(--down)'}"></div></div>`;
+        });
+        document.getElementById('flow').innerHTML = flowHtml || '<div class="status">no sector data</div>';
+
+      } catch (e) {
+        console.error('Update error:', e.message);
+      }
     }
 
     async function updateBTCMom() {
-        let html = '';
-        for (const tf of TFs) {
-            try {
-                const ohlcv = await exchange.fetchOHLCV('BTC/USDT:USDT', tf, 60);
-                const closes = ohlcv.map(x => x[4]);
-                const lp = closes[closes.length-1], e13 = calcEMA(closes, 13), rsi = calcRSI(closes), bull = lp > e13;
-                html += `<div class="mom-row"><span style="font-weight:600">${tf.toUpperCase()}</span><span class="tag ${bull?'tag-up':'tag-down'}">${bull?'BULL':'BEAR'}</span><div style="flex:1"><div class="sys-row" style="font-size:8px; margin-bottom:0"><span>RSI</span><span>${rsi.toFixed(0)}</span></div><div class="bar" style="margin:0"><div class="fill" style="width:${rsi}%; background:${rsi>70?'var(--down)':(rsi<30?'var(--up)':'var(--gold)')}"></div></div></div></div>`;
-            } catch (e) {}
+      const tfs = ['5m','15m','4h','1d'];
+      let html = '';
+      for (const tf of tfs) {
+        try {
+          const ohlcv = await exchange.fetchOHLCV('BTC/USDT:USDT', tf, undefined, 20);
+          if (ohlcv.length < 2) continue;
+          const closes = ohlcv.map(c => c[4]);
+          const up = closes[closes.length-1] > closes[closes.length-2];
+          html += `<div class="mom-row">
+            <span style="font-weight:600">${tf.toUpperCase()}</span>
+            <span class="tag ${up?'tag-up':'tag-down'}">${up?'UP':'DOWN'}</span>
+            <span></span>
+            <span>${priceFmt(closes.at(-1))}</span>
+          </div>`;
+        } catch {}
+      }
+      document.getElementById('btcmom').innerHTML = html || '<div class="status">no data</div>';
+    }
+
+    async function scanWhales() {
+      try {
+        await initMarkets();
+        const symbolsToWatch = ['BTC/USDT:USDT', 'ETH/USDT:USDT', 'SOL/USDT:USDT', ...TARGETS.map(t => getSym(t))];
+        for (const sym of symbolsToWatch) {
+          if (!exchange.markets[sym]) continue;
+          const trades = await exchange.fetchTrades(sym, undefined, undefined, 60);
+          for (const trade of trades) {
+            const id = trade.id || `${sym}-${trade.timestamp}-${trade.price}`;
+            if (seenTradeIds.has(id)) continue;
+            seenTradeIds.add(id);
+
+            const usd = trade.amount * trade.price;
+            if (usd < WHALE_THRESHOLD_USD) continue;
+
+            const side = trade.side.toUpperCase();
+            const timeStr = new Date(trade.timestamp).toLocaleTimeString('en-GB', {hour12:false});
+            const row = `<div class="whale-row">
+              <span class="w-time">${timeStr}</span>
+              <span class="w-asset">${exchange.markets[sym]?.base || sym.split('/')[0]}</span>
+              <span class="w-side ${side==='BUY'?'up':'down'}">${side}</span>
+              <span class="w-val">$${fmt.format(usd)}</span>
+            </div>`;
+            whaleLogs.unshift(row);
+            if (whaleLogs.length > 15) whaleLogs.pop();
+            document.getElementById('activity').innerHTML = whaleLogs.join('');
+          }
         }
-        document.getElementById('btcmom').innerHTML = html;
+      } catch (e) {}
     }
 
-    function updateMoneyFlow(tickers) {
-        let html = '';
-        for (const [sector, coins] of Object.entries(SECTORS)) {
-            let total = 0, count = 0;
-            coins.forEach(s => { const t = tickers[s+'/USDT:USDT']; if(t){ total += t.percentage; count++; }});
-            const avg = count > 0 ? total/count : 0;
-            html += `<div class="sys-row"><span>${sector}</span><span class="${avg>=0?'up':'down'}">${avg.toFixed(1)}%</span></div><div class="bar"><div class="fill" style="width:${Math.min(Math.max(50+(avg*5),5),100)}%; background:${avg>=0?'var(--up)':'var(--down)'}"></div></div>`;
-        }
-        document.getElementById('flow').innerHTML = html;
+    function renderFixed() {
+      const fixed = document.getElementById('fixed');
+      fixed.innerHTML = TARGETS.map(s => {
+        const t = lastTickers[getSym(s)] || { percentage: 0, last: 0 };
+        return `<div class="sys-row">
+          <span class="clickable" onclick="removeTarget('${s}')">${s}</span>
+          <span>${priceFmt(t.last)}</span>
+          <span class="${t.percentage >= 0 ? 'up' : 'down'}">${t.percentage.toFixed(2)}%</span>
+        </div>`;
+      }).join('') || '<div class="status">no targets</div>';
     }
 
-    function generateWhaleAlerts() {
-        const container = document.getElementById('activity');
-        if (Math.random() > 0.45 || Object.keys(lastTickers).length === 0) return;
-        const assets = ["BTC", "ETH", "SOL", "PEPE", "LINK", "TIA", "SUI"];
-        const asset = assets[Math.floor(Math.random() * assets.length)];
-        const tick = lastTickers[asset + '/USDT:USDT'];
-        if (!tick) return;
-        const valUSD = 500000 + (Math.random() * 10000000), side = Math.random() > 0.5 ? "LONG" : "SHORT", ts = new Date().toLocaleTimeString('en-GB', { hour12: false });
-        const icon = valUSD > 5000000 ? "🏛️" : (valUSD > 1500000 ? "🐳" : "🦈");
-        const log = `<div class="whale-row"><span class="w-icon">${icon}</span><span class="w-time">${ts}</span><span class="w-asset">${asset}</span><span class="w-side ${side==='LONG'?'up':'down'}">${side}</span><span class="w-val">$${fmt.format(valUSD)}</span><span class="w-price">@ ${fmtDe.format(tick.last)}</span></div>`;
-        whaleLogs.unshift(log);
-        if (whaleLogs.length > 20) whaleLogs.pop();
-        container.innerHTML = whaleLogs.join('');
-    }
-
-    async function getSentiment() {
-        const fng = 44, cbbi = 54, m = 0.86, pi = 49;
-        document.getElementById('sentiment').innerHTML = `<div class="sys-row"><span>F&G</span><span class="down">${fng}</span></div><div class="bar"><div class="fill" style="width:${fng}%; background:#ff3344"></div></div><div class="sys-row"><span>CBBI</span><span class="gold">${cbbi}</span></div><div class="bar"><div class="fill" style="width:${cbbi}%; background:#ffd700"></div></div><div class="sys-row"><span>MAYER</span><span class="up">${m}</span></div><div class="bar"><div class="fill" style="width:${(m/2.4)*100}%; background:#00ff88"></div></div><div class="sys-row"><span>PI TOP</span><span>${pi}%</span></div><div class="bar"><div class="fill" style="width:${pi}%; background:#90caf9"></div></div>`;
-    }
-
-    getSentiment(); update(); updateBTCMom();
-    setInterval(update, 8000); setInterval(updateBTCMom, 30000); setInterval(generateWhaleAlerts, 2000);
+    // Start
+    updateData();
+    updateBTCMom();
+    scanWhales();
+    setInterval(updateData, 15000);
+    setInterval(updateBTCMom, 90000);
+    setInterval(scanWhales, 8000);
   </script>
 </body>
 </html>
