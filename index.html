@@ -496,7 +496,12 @@
         </div>
       </div>
       <div class="panel">
-        <div class="header">ACTIVITY HUB <span style="font-size:9px; color:#888;">(Whales / Liqs)</span></div>
+        <div class="header">
+          ACTIVITY HUB
+          <span style="font-size:9px; color:#888;">(Whales / Liqs)</span>
+          <span id="filter-toggle" class="clickable" onclick="toggleFilter()"
+            style="font-size:9px; margin-left:10px; color:var(--up);">FILTER: ON</span>
+        </div>
         <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px; height: 100%; min-height: 0;">
           <div id="activity-whales" class="content" style="border-right:1px solid #181818; padding-right:4px;">
             <div class="status">live trades...</div>
@@ -534,6 +539,8 @@
     const exchange = new ccxt.binance({ enableRateLimit: true, options: { defaultType: 'swap' } });
     let isInit = false;
     let activeTicker = 'DUSK';
+    let filterActive = true;
+    let whaleWs = null;
     const rsiCache = new Map();
     const CACHE_DURATION = 30000;
     const fmt = new Intl.NumberFormat('en-US', { notation: "compact", maximumFractionDigits: 2 });
@@ -689,11 +696,29 @@
     const MOMENTUM = new Map(); // symbol -> [{val, side, t}]
     const RADAR_WINDOW = 60000;
 
+    function toggleFilter() {
+      filterActive = !filterActive;
+      const el = document.getElementById('filter-toggle');
+      el.innerText = `FILTER: ${filterActive ? 'ON' : 'OFF'}`;
+      el.style.color = filterActive ? 'var(--up)' : 'var(--accent)';
+      document.getElementById('activity-whales').innerHTML = '<div class="status">filtering...</div>';
+    }
+
     function initWhaleStream() {
+      if (whaleWs) {
+        whaleWs.close();
+        whaleWs = null;
+      }
+
+      if (TARGETS.length === 0) return;
+
+      // Subscribe to all symbols in watchlist
+      const streams = TARGETS.map(t => `${t.toLowerCase()}usdt@aggTrade`).join('/');
+      whaleWs = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
+
       const whaleContainer = document.getElementById('activity-whales');
-      // Combined stream for DUSK and JASMY
-      const ws = new WebSocket("wss://fstream.binance.com/stream?streams=duskusdt@aggTrade/jasmyusdt@aggTrade");
-      ws.onmessage = (msg) => {
+
+      whaleWs.onmessage = (msg) => {
         const payload = JSON.parse(msg.data);
         const data = payload.data;
         if (!data) return;
@@ -703,7 +728,9 @@
         if (usdVal < WHALE_THRESHOLD) return;
 
         const symbol = data.s.replace('USDT', '');
-        if (activeTicker && symbol !== activeTicker) return;
+
+        // Dynamic Filtering
+        if (filterActive && activeTicker && symbol !== activeTicker) return;
 
         // Track for Radar
         if (!MOMENTUM.has(symbol)) MOMENTUM.set(symbol, []);
@@ -725,7 +752,10 @@
         whaleContainer.prepend(row);
         if (whaleContainer.childNodes.length > 25) whaleContainer.removeChild(whaleContainer.lastChild);
       };
-      ws.onclose = () => setTimeout(initWhaleStream, 5000);
+      whaleWs.onclose = () => {
+        if (!whaleWs) return; // Explicitly closed by us
+        setTimeout(initWhaleStream, 5000);
+      };
     }
 
     function refreshRadar() {
@@ -928,6 +958,7 @@
       TARGETS.push(val);
       localStorage.setItem('custom_targets_perp', JSON.stringify(TARGETS));
       await rebuildWatchlist();
+      initWhaleStream(); // Refresh stream with new target
       document.getElementById('targetInput').value = '';
     }
 
@@ -935,6 +966,7 @@
       TARGETS = TARGETS.filter(t => t !== s);
       localStorage.setItem('custom_targets_perp', JSON.stringify(TARGETS));
       rebuildWatchlist();
+      initWhaleStream(); // Refresh stream after removal
     }
 
     setInterval(() => {
